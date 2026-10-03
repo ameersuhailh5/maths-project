@@ -5,151 +5,71 @@ export interface StockPricePoint {
   high?: number;
   low?: number;
   volume?: number;
-  interestRate?: number;
-  sp500Price?: number;
 }
 
-export interface RollingVolatilityPoint {
+export interface PriceProjectionPoint {
   date: string;
-  volatility30d: number;
-  volatility90d: number;
-  drawdown: number;
-  price: number;
-  interestRate: number;
+  actualPrice?: number;
+  sma30?: number;
+  projectedPrice?: number;
+  upperConfidence?: number;
+  lowerConfidence?: number;
+  isForecast: boolean;
 }
 
-export interface ReturnDistributionBucket {
-  rangeLabel: string;
-  minReturn: number;
-  maxReturn: number;
-  actualCount: number;
-  normalCount: number;
-}
-
-export interface MonteCarloPath {
-  day: number;
-  p5: number;
-  p25: number;
-  p50: number;
-  p75: number;
-  p95: number;
-}
-
-export interface VolThresholdAlert {
-  id: string;
-  symbol: string;
-  stockName: string;
-  timestamp: string;
-  thresholdValue: number;
-  actualVolatility: number;
-  metricType: '30d' | '90d' | '1y';
-  severity: 'Warning' | 'Critical';
-  priceAtAlert: number;
-  read: boolean;
-}
-
-// 5-Factor Weighted Sum Model from Presentation (0-100 Scale)
+// Factor Detail following Slide 4 of the PPT
 export interface FactorDetail {
+  id: 'volatility' | 'liquidity' | 'marketCorrelation' | 'leverageDebt' | 'trackRecordCredit';
   name: string;
+  shortName: string;
+  rawMetricValue: string;
+  rawMetricUnit: string;
   normalizedScore: number; // 0 - 100
-  weight: number;          // e.g. 0.30
-  weightPercent: string;   // "30%"
+  weight: number;          // 0.30, 0.20, 0.20, 0.15, 0.15
+  weightPercent: string;   // "30%", "20%", "20%", "15%", "15%"
   contribution: number;    // normalizedScore * weight
+  color: string;
   description: string;
 }
 
+// 5-Factor Weighted-Sum Model (Slides 1, 3, 4, 5, 6)
 export interface FiveFactorRiskModel {
   volatility: FactorDetail;
   liquidity: FactorDetail;
   marketCorrelation: FactorDetail;
   leverageDebt: FactorDetail;
   trackRecordCredit: FactorDetail;
-  totalScore: number; // 0 - 100
-  riskBand: 'Low Risk' | 'Moderate Risk' | 'High Risk' | 'Very High Risk';
+  totalScore: number; // 0.0 - 100.0
+  riskBand: 'Low' | 'Moderate' | 'High' | 'Very High';
+  riskRange: string;  // "0–30", "31–60", "61–80", "81–100"
   colorBandHex: string;
+  verdictText: string;
 }
 
-export interface RiskMetrics {
-  // Volatility
-  volatility30d: number;
-  volatility90d: number;
-  volatility1y: number;
-  downsideVolatility: number;
-  
-  // Drawdown
-  maxDrawdown: number;
-  maxDrawdownDays: number;
-  currentDrawdown: number;
-  
-  // Value at Risk
-  var95Daily: number;
-  var99Daily: number;
-  cvar95Daily: number;
-  
-  // Interest Rate Sensitivity
-  rateBeta: number;
-  durationProxy: number;
-  rateImpactPlus100bps: number;
-  rateImpactMinus100bps: number;
-  interestRiskCategory: 'Low Sensitivity' | 'Moderate Sensitivity' | 'High Sensitivity' | 'Extreme Sensitivity';
-  
-  // Market Ratios
-  sharpeRatio: number;
-  sortinoRatio: number;
-  betaToMarket: number;
-  alpha: number;
-  annualizedReturn: number;
-  skewness: number;
-  kurtosis: number;
-  
-  // Threshold Alert
-  isAlertTriggered: boolean;
-  alertMetric: '30d' | '90d' | '1y';
-  
-  // PPT 5-Factor Model
-  fiveFactorModel: FiveFactorRiskModel;
-
-  // Aggregate Risk Score
-  overallRiskLevel: 'Low' | 'Moderate' | 'High' | 'Very High';
-  overallRiskScore: number;
+// Core Statistical & Probability Foundations (Slide 3)
+export interface StatisticalFoundations {
+  sampleSize: number;
+  meanDailyReturn: number;
+  dailyStandardDeviation: number;
+  annualizedVolatility: number;
+  probabilityDownsideDay: number;
+  probabilitySevereSlump: number;
+  maxDrawdownPercent: number;
 }
 
 export interface StockQuote {
   symbol: string;
   name: string;
   sector: string;
-  industry: string;
+  market: 'IN' | 'US';
+  currency: string;
+  exchange: string;
   price: number;
   change: number;
   changePercent: number;
   marketCap: string;
   peRatio?: number;
-  dividendYield?: number;
-  description: string;
   history: StockPricePoint[];
-  metrics: RiskMetrics;
-}
-
-export interface StressScenarioResult {
-  scenarioName: string;
-  description: string;
-  interestRateShiftBps: number;
-  marketShockPercent: number;
-  estimatedStockImpact: number;
-  riskLevel: 'Manageable' | 'Severe' | 'Critical';
-}
-
-export interface PortfolioItem {
-  symbol: string;
-  weight: number;
-}
-
-export interface PortfolioRiskMetrics {
-  totalReturn1y: number;
-  portfolioVolatility: number;
-  portfolioVar95: number;
-  portfolioRateBeta: number;
-  sharpeRatio: number;
-  diversificationScore: number;
-  stressTestResults: StressScenarioResult[];
+  stats: StatisticalFoundations;
+  fiveFactorModel: FiveFactorRiskModel;
 }

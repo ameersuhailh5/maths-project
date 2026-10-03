@@ -3,7 +3,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { getStockData, POPULAR_STOCKS } from './src/data/stockDatabase';
-import { calculatePortfolioRisk } from './src/services/financialMath';
 
 dotenv.config();
 
@@ -15,7 +14,7 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json({ limit: '10mb' }));
 
-// GET /api/stocks - Get list of stocks with calculated metrics
+// GET /api/stocks - Get list of stocks with 5-factor risk model
 app.get('/api/stocks', (req, res) => {
   res.json({
     stocks: POPULAR_STOCKS.map((s) => ({
@@ -24,15 +23,14 @@ app.get('/api/stocks', (req, res) => {
       sector: s.sector,
       price: s.price,
       changePercent: s.changePercent,
-      overallRiskLevel: s.metrics.overallRiskLevel,
-      volatility30d: s.metrics.volatility30d,
-      volatility1y: s.metrics.volatility1y,
-      maxDrawdown: s.metrics.maxDrawdown,
+      annualizedVolatility: s.stats.annualizedVolatility,
+      riskScore: s.fiveFactorModel.totalScore,
+      riskBand: s.fiveFactorModel.riskBand,
     })),
   });
 });
 
-// GET /api/stock/:symbol - Get detailed quote & history
+// GET /api/stock/:symbol - Get detailed quote & 5-factor model
 app.get('/api/stock/:symbol', (req, res) => {
   try {
     const symbol = req.params.symbol;
@@ -40,22 +38,6 @@ app.get('/api/stock/:symbol', (req, res) => {
     res.json(stock);
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Failed to fetch stock data' });
-  }
-});
-
-// POST /api/portfolio/analyze - Portfolio risk evaluation
-app.post('/api/portfolio/analyze', (req, res) => {
-  try {
-    const { items } = req.body;
-    if (!Array.isArray(items)) {
-      return res.status(400).json({ error: 'Items array required' });
-    }
-
-    const availableStocks = items.map((it: { symbol: string }) => getStockData(it.symbol));
-    const result = calculatePortfolioRisk(items, availableStocks);
-    res.json(result);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to analyze portfolio' });
   }
 });
 
@@ -77,7 +59,7 @@ async function setupVite() {
   }
 
   app.listen(PORT, () => {
-    console.log(`YieldRisk Real-Time Monitor running at http://localhost:${PORT}`);
+    console.log(`ANNRIYA RISK FINDER server running at http://localhost:${PORT}`);
   });
 }
 

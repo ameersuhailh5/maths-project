@@ -4,23 +4,20 @@ import { getStockData } from './data/stockDatabase';
 import { Navbar } from './components/Navbar';
 import { TickerHeader } from './components/TickerHeader';
 import { WeightedRiskModelCard } from './components/WeightedRiskModelCard';
+import { FromRawDataToRiskValues } from './components/FromRawDataToRiskValues';
+import { TechnicalToolsCard } from './components/TechnicalToolsCard';
 import { InteractiveCharts } from './components/InteractiveCharts';
-import { RiskMetricsGrid } from './components/RiskMetricsGrid';
-import { StockComparator } from './components/StockComparator';
-import { PortfolioStressTester } from './components/PortfolioStressTester';
 import { CustomDataUploader } from './components/CustomDataUploader';
-import { CodeViewerModal } from './components/CodeViewerModal';
-import { ShieldAlert } from 'lucide-react';
+import { Shield } from 'lucide-react';
 
 export default function App() {
-  const [currentSymbol, setCurrentSymbol] = useState<string>('AAPL');
-  const [stock, setStock] = useState<StockQuote>(() => getStockData('AAPL'));
+  const [currentSymbol, setCurrentSymbol] = useState<string>('RELIANCE');
+  const [stock, setStock] = useState<StockQuote>(() => getStockData('RELIANCE'));
   
-  const [activeTab, setActiveTab] = useState<'model' | 'charts' | 'comparator' | 'portfolio'>('model');
+  const [activeTab, setActiveTab] = useState<'model' | 'dataValues' | 'tools' | 'charts'>('model');
   
   // Modals
   const [isUploaderOpen, setIsUploaderOpen] = useState<boolean>(false);
-  const [isCodeDrawerOpen, setIsCodeDrawerOpen] = useState<boolean>(false);
 
   useEffect(() => {
     const fetched = getStockData(currentSymbol);
@@ -43,7 +40,6 @@ export default function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onOpenUploader={() => setIsUploaderOpen(true)}
-        onOpenCodeDrawer={() => setIsCodeDrawerOpen(true)}
       />
 
       {/* Main Viewport */}
@@ -58,37 +54,36 @@ export default function App() {
         {/* Tab View Contents */}
         <div className="p-4 sm:p-6 lg:p-8 space-y-8">
           
-          {/* TAB 1: 5-Factor Risk Model */}
+          {/* TAB 1: 5-Factor Weighted-Sum Model */}
           {activeTab === 'model' && (
             <div className="space-y-8">
-              {/* PRESENTATION PPT MODEL: 5-Factor Weighted-Sum Risk Model */}
               <WeightedRiskModelCard stock={stock} />
-
-              {/* Quantitative Risk Metric Cards Grid */}
-              <RiskMetricsGrid
-                metrics={stock.metrics}
-                symbol={stock.symbol}
-              />
             </div>
           )}
 
-          {/* TAB 2: Risk & Volatility Charts */}
+          {/* TAB 2: From Raw Data to Risk Values */}
+          {activeTab === 'dataValues' && (
+            <div className="space-y-8">
+              <FromRawDataToRiskValues stock={stock} />
+            </div>
+          )}
+
+          {/* TAB 3: Technical Tools */}
+          {activeTab === 'tools' && (
+            <div className="space-y-8">
+              <TechnicalToolsCard />
+            </div>
+          )}
+
+          {/* TAB 4: Price & 30-Day SMA Forecast */}
           {activeTab === 'charts' && (
             <InteractiveCharts
               symbol={stock.symbol}
               history={stock.history}
-              metrics={stock.metrics}
+              fiveFactorModel={stock.fiveFactorModel}
+              annualizedVol={stock.stats.annualizedVolatility}
+              currency={stock.currency}
             />
-          )}
-
-          {/* TAB 3: Multi-Stock Risk Comparator */}
-          {activeTab === 'comparator' && (
-            <StockComparator />
-          )}
-
-          {/* TAB 4: Portfolio Stress Tester */}
-          {activeTab === 'portfolio' && (
-            <PortfolioStressTester />
           )}
 
         </div>
@@ -101,22 +96,16 @@ export default function App() {
         onImportCustomData={handleImportCustomData}
       />
 
-      {/* Python Code Viewer Modal */}
-      <CodeViewerModal
-        isOpen={isCodeDrawerOpen}
-        onClose={() => setIsCodeDrawerOpen(false)}
-      />
-
       {/* Minimal Footer */}
       <footer className="border-t border-[#00509e]/80 bg-[#001f3f] py-5 text-xs text-[#66a3ff]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <ShieldAlert className="w-4 h-4 text-[#007acc]" />
+            <Shield className="w-4 h-4 text-amber-400" />
             <span className="font-bold text-white">ANNRIYA RISK FINDER</span>
-            <span>· Quantitative 5-Factor Weighted-Sum Assessment</span>
+            <span className="hidden sm:inline">· Quantitative Risk Assessments of Investment Opportunities</span>
           </div>
           <div className="text-[11px] text-[#66a3ff] font-mono">
-            Model: Python / Pandas / NumPy Engine
+            A weighted-sum model that combines five risk factors into one 0–100 score
           </div>
         </div>
       </footer>

@@ -1,282 +1,245 @@
 import React, { useState } from 'react';
 import { StockQuote } from '../types/stock';
-import { Calculator, RotateCcw } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { RotateCcw } from 'lucide-react';
 
 interface WeightedRiskModelCardProps {
   stock: StockQuote;
 }
 
 export const WeightedRiskModelCard: React.FC<WeightedRiskModelCardProps> = ({ stock }) => {
-  const model = stock.fiveFactorModel;
+  const { fiveFactorModel } = stock;
 
-  // Interactive Factor Risk Values (0 - 100)
-  const [volValue, setVolValue] = useState<number>(model.volatility.normalizedScore);
-  const [liqValue, setLiqValue] = useState<number>(model.liquidity.normalizedScore);
-  const [corrValue, setCorrValue] = useState<number>(model.marketCorrelation.normalizedScore);
-  const [levValue, setLevValue] = useState<number>(model.leverageDebt.normalizedScore);
-  const [trackValue, setTrackValue] = useState<number>(model.trackRecordCredit.normalizedScore);
+  // Interactive slider states
+  const [customVol, setCustomVol] = useState<number>(fiveFactorModel.volatility.normalizedScore);
+  const [customLiq, setCustomLiq] = useState<number>(fiveFactorModel.liquidity.normalizedScore);
+  const [customCorr, setCustomCorr] = useState<number>(fiveFactorModel.marketCorrelation.normalizedScore);
+  const [customLev, setCustomLev] = useState<number>(fiveFactorModel.leverageDebt.normalizedScore);
+  const [customTrack, setCustomTrack] = useState<number>(fiveFactorModel.trackRecordCredit.normalizedScore);
 
-  // Exact PPT formula: Risk Score = Σ (Risk Value × Weight)
-  const cVol = Number((volValue * 0.30).toFixed(2));
-  const cLiq = Number((liqValue * 0.20).toFixed(2));
-  const cCorr = Number((corrValue * 0.20).toFixed(2));
-  const cLev = Number((levValue * 0.15).toFixed(2));
-  const cTrack = Number((trackValue * 0.15).toFixed(2));
-
-  const totalScore = Number((cVol + cLiq + cCorr + cLev + cTrack).toFixed(1));
-
-  // Slide 5: Risk Bands Classification
-  let riskBand = 'Moderate';
-  let bandClass = 'bg-[#E5A93C] text-slate-950';
-
-  if (totalScore <= 30.0) {
-    riskBand = 'Low';
-    bandClass = 'bg-[#2E9D64] text-white';
-  } else if (totalScore <= 60.0) {
-    riskBand = 'Moderate';
-    bandClass = 'bg-[#E5A93C] text-slate-950';
-  } else if (totalScore <= 80.0) {
-    riskBand = 'High';
-    bandClass = 'bg-[#E5633C] text-white';
-  } else {
-    riskBand = 'Very High';
-    bandClass = 'bg-[#D9453B] text-white';
+  // Sync when stock changes
+  const [prevStockSymbol, setPrevStockSymbol] = useState(stock.symbol);
+  if (stock.symbol !== prevStockSymbol) {
+    setPrevStockSymbol(stock.symbol);
+    setCustomVol(fiveFactorModel.volatility.normalizedScore);
+    setCustomLiq(fiveFactorModel.liquidity.normalizedScore);
+    setCustomCorr(fiveFactorModel.marketCorrelation.normalizedScore);
+    setCustomLev(fiveFactorModel.leverageDebt.normalizedScore);
+    setCustomTrack(fiveFactorModel.trackRecordCredit.normalizedScore);
   }
 
   const resetToStockValues = () => {
-    setVolValue(model.volatility.normalizedScore);
-    setLiqValue(model.liquidity.normalizedScore);
-    setCorrValue(model.marketCorrelation.normalizedScore);
-    setLevValue(model.leverageDebt.normalizedScore);
-    setTrackValue(model.trackRecordCredit.normalizedScore);
+    setCustomVol(fiveFactorModel.volatility.normalizedScore);
+    setCustomLiq(fiveFactorModel.liquidity.normalizedScore);
+    setCustomCorr(fiveFactorModel.marketCorrelation.normalizedScore);
+    setCustomLev(fiveFactorModel.leverageDebt.normalizedScore);
+    setCustomTrack(fiveFactorModel.trackRecordCredit.normalizedScore);
   };
+
+  // Contributions: Risk Value × Weight
+  const cVol = Number((customVol * 0.30).toFixed(2));
+  const cLiq = Number((customLiq * 0.20).toFixed(2));
+  const cCorr = Number((customCorr * 0.20).toFixed(2));
+  const cLev = Number((customLev * 0.15).toFixed(2));
+  const cTrack = Number((customTrack * 0.15).toFixed(2));
+
+  // Weighted Sum
+  const totalScore = Number((cVol + cLiq + cCorr + cLev + cTrack).toFixed(1));
+
+  // Risk Band Classification with requested color palette
+  let riskBand = 'Moderate';
+  let bandClass = 'bg-[#FFC933]/20 text-[#825b00] border-[#FFC933]';
+  let bandHex = '#FFC933';
+
+  if (totalScore <= 30.0) {
+    riskBand = 'Low';
+    bandClass = 'bg-[#B5F2DB] text-[#042F34] border-[#8ee3c2]';
+    bandHex = '#B5F2DB';
+  } else if (totalScore <= 60.0) {
+    riskBand = 'Moderate';
+    bandClass = 'bg-[#FFC933]/20 text-[#825b00] border-[#FFC933]';
+    bandHex = '#FFC933';
+  } else if (totalScore <= 80.0) {
+    riskBand = 'High';
+    bandClass = 'bg-orange-100 text-orange-900 border-orange-300';
+    bandHex = '#f97316';
+  } else {
+    riskBand = 'Very High';
+    bandClass = 'bg-rose-100 text-rose-900 border-rose-300';
+    bandHex = '#ef4444';
+  }
 
   const factorItems = [
     {
-      id: 'volatility',
+      id: 'vol',
       name: 'Volatility',
+      weight: '30%',
       weightNum: 0.30,
-      weightStr: '30%',
-      val: volValue,
-      setVal: setVolValue,
-      contrib: cVol,
-      color: '#00264d',
-      desc: 'Annualized standard deviation of daily price returns.',
+      val: customVol,
+      setVal: setCustomVol,
+      contribution: cVol,
+      desc: 'Annualized price fluctuation of daily returns',
+      calc: `${customVol.toFixed(0)} × 0.30 = ${cVol.toFixed(2)}`,
     },
     {
-      id: 'liquidity',
+      id: 'liq',
       name: 'Liquidity',
+      weight: '20%',
       weightNum: 0.20,
-      weightStr: '20%',
-      val: liqValue,
-      setVal: setLiqValue,
-      contrib: cLiq,
-      color: '#00509e',
-      desc: 'Average turnover and trading volume depth.',
+      val: customLiq,
+      setVal: setCustomLiq,
+      contribution: cLiq,
+      desc: 'Ease of execution and daily market depth',
+      calc: `${customLiq.toFixed(0)} × 0.20 = ${cLiq.toFixed(2)}`,
     },
     {
-      id: 'correlation',
-      name: 'Market/Sector Correlation',
+      id: 'corr',
+      name: 'Market Correlation',
+      weight: '20%',
       weightNum: 0.20,
-      weightStr: '20%',
-      val: corrValue,
-      setVal: setCorrValue,
-      contrib: cCorr,
-      color: '#007acc',
-      desc: 'Beta sensitivity to broader market movements.',
+      val: customCorr,
+      setVal: setCustomCorr,
+      contribution: cCorr,
+      desc: 'Sensitivity (Beta) relative to broad benchmark index',
+      calc: `${customCorr.toFixed(0)} × 0.20 = ${cCorr.toFixed(2)}`,
     },
     {
-      id: 'leverage',
-      name: 'Leverage/Debt Ratio',
+      id: 'lev',
+      name: 'Leverage / Debt',
+      weight: '15%',
       weightNum: 0.15,
-      weightStr: '15%',
-      val: levValue,
-      setVal: setLevValue,
-      contrib: cLev,
-      color: '#e5633c',
-      desc: 'Debt burden relative to total corporate assets.',
+      val: customLev,
+      setVal: setCustomLev,
+      contribution: cLev,
+      desc: 'Debt-to-capitalization ratio and solvency pressure',
+      calc: `${customLev.toFixed(0)} × 0.15 = ${cLev.toFixed(2)}`,
     },
     {
       id: 'track',
-      name: 'Track Record/Credit Rating',
+      name: 'Track Record',
+      weight: '15%',
       weightNum: 0.15,
-      weightStr: '15%',
-      val: trackValue,
-      setVal: setTrackValue,
-      contrib: cTrack,
-      color: '#66a3ff',
-      desc: 'Balance sheet credit rating and historical reliability.',
+      val: customTrack,
+      setVal: setCustomTrack,
+      contribution: cTrack,
+      desc: 'Operational history and credit rating tier',
+      calc: `${customTrack.toFixed(0)} × 0.15 = ${cTrack.toFixed(2)}`,
     },
   ];
 
-  const pieData = factorItems.map((f) => ({
-    name: `${f.name} (${f.weightStr})`,
-    value: f.weightNum * 100,
-    color: f.color,
-  }));
-
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       
-      {/* =================================================================== */}
-      {/* SLIDE 4: Weighted Sum: Five Risk Factors                           */}
-      {/* =================================================================== */}
-      <div className="bg-[#001f3f] border border-[#00509e] rounded-xl p-5 sm:p-6 space-y-6 text-white shadow-xl">
-        <div className="pb-3 border-b border-[#00509e] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      {/* 1. Formula & Model Breakdown */}
+      <div className="bg-white border border-[#cddfe2] rounded-lg p-5 space-y-5 shadow-xs">
+        
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#cddfe2] gap-3">
           <div>
-            <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-              <Calculator className="w-5 h-5 text-[#007acc]" />
+            <h2 className="text-lg font-bold text-[#042F34] tracking-tight">
               Weighted Sum: Five Risk Factors
             </h2>
-            <p className="text-xs text-[#66a3ff] mt-0.5">
-              Mathematical formulation for {stock.symbol} ({stock.name}).
+            <p className="text-xs text-[#16232B]/70 mt-0.5">
+              Combining five normalized risk factors into one overall score for {stock.symbol} ({stock.name}).
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={resetToStockValues}
-              className="flex items-center gap-1 px-2.5 py-1 text-xs rounded bg-[#00264d] border border-[#00509e] text-[#66a3ff] hover:text-white transition-colors"
-              title="Reset to computed stock values"
-            >
-              <RotateCcw className="w-3 h-3" />
-              <span>Reset Values</span>
-            </button>
-            <div className="px-3 py-1 bg-[#00264d] border border-[#007acc] rounded-lg text-xs font-mono font-bold text-white">
-              Weights total 100%
+          <button
+            onClick={resetToStockValues}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-[#E4EEF0] hover:bg-[#d6e6e8] text-[#042F34] transition-colors border border-[#cddfe2] font-semibold self-start sm:self-auto"
+          >
+            <RotateCcw className="w-3.5 h-3.5 text-[#042F34]" />
+            <span>Reset to Stock Defaults</span>
+          </button>
+        </div>
+
+        {/* Core Formula & Example in Pale Blue Gray & Warm Yellow */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-[#E4EEF0] border border-[#cddfe2] rounded-lg p-4">
+            <span className="text-[11px] font-mono text-[#042F34] uppercase tracking-wider font-bold">
+              Mathematical Model
+            </span>
+            <div className="text-lg sm:text-xl font-mono font-bold text-[#042F34] mt-1">
+              Risk Score = Σ (Risk Value × Weight)
             </div>
+            <p className="text-xs text-[#16232B]/80 mt-1">
+              Each factor has a normalized risk value from 0 to 100 multiplied by its assigned percentage weight.
+            </p>
+          </div>
+
+          <div className="bg-[#E4EEF0] border border-[#cddfe2] rounded-lg p-4">
+            <span className="text-[11px] font-mono text-[#042F34] uppercase tracking-wider font-bold">
+              Calculation Example (Volatility)
+            </span>
+            <div className="text-lg sm:text-xl font-mono font-bold text-[#042F34] mt-1">
+              70 × 0.30 = <span className="text-[#825b00]">21.00</span>
+            </div>
+            <p className="text-xs text-[#16232B]/80 mt-1">
+              Repeat for every factor, then add the results. The factor weights sum to 100%.
+            </p>
           </div>
         </div>
 
-        {/* Slide 4 Header Equation & Donut Presentation */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center bg-[#00264d] p-5 rounded-xl border border-[#00509e]">
-          
-          {/* Donut Chart (Matching Slide 4 Left Graphic) */}
-          <div className="lg:col-span-4 flex flex-col items-center justify-center">
-            <div className="w-48 h-48 relative">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={75}
-                    paddingAngle={3}
-                    dataKey="value"
-                  >
-                    {pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} stroke="#001f3f" strokeWidth={2} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#001429', borderColor: '#00509e', borderRadius: '0.5rem', fontSize: '11px', color: '#ffffff' }}
-                    formatter={(val: any) => [`${val}% weight`, 'Factor Weight']}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-xs text-[#66a3ff] font-mono">Total</span>
-                <span className="text-lg font-bold text-white font-mono">100%</span>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap justify-center gap-2 text-[10px] font-mono mt-2 text-[#cce0ff]">
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#00264d] border border-[#00509e]" /> Vol 30%</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#00509e]" /> Liq 20%</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#007acc]" /> Corr 20%</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#e5633c]" /> Lev 15%</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#66a3ff]" /> Track 15%</span>
-            </div>
+        {/* Interactive Factor Breakdown Table */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-xs text-[#16232B]">
+            <span className="font-semibold text-[#042F34]">Risk Factor Values & Weights</span>
+            <span className="font-mono text-[#16232B]/60">Adjust sliders to test custom scores</span>
           </div>
 
-          {/* Formula Presentation (Slide 4 Right Content) */}
-          <div className="lg:col-span-8 space-y-4">
-            <div className="p-4 rounded-xl bg-[#001f3f] border border-[#007acc] space-y-1">
-              <span className="text-xs font-mono text-[#66a3ff] uppercase font-semibold">Core Formula:</span>
-              <div className="text-xl sm:text-2xl font-mono font-extrabold text-white tracking-wide">
-                Risk Score = Σ (Risk Value × Weight)
-              </div>
-            </div>
-
-            {/* Exact Example Callout from Slide 4 */}
-            <div className="p-4 rounded-xl bg-[#001429] border border-[#00509e] space-y-1">
-              <div className="text-xs text-[#66a3ff] font-mono">Example: volatility</div>
-              <div className="text-2xl sm:text-3xl font-extrabold font-mono text-amber-400">
-                70 × 0.30 = 21
-              </div>
-              <div className="text-xs text-[#cce0ff] pt-1">
-                Repeat for every factor, then add the results. Weights total 100%.
-              </div>
-            </div>
-          </div>
-
-        </div>
-
-        {/* Five Risk Factors Interactive Table (Slide 4 calculation steps) */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between text-xs text-[#66a3ff]">
-            <span className="font-semibold text-white">Calculation Breakdown (Adjust sliders to test custom factor values):</span>
-            <span className="font-mono text-slate-300">5 Factors Sum to 100%</span>
-          </div>
-
-          <div className="border border-[#00509e] rounded-xl overflow-x-auto bg-[#00264d]">
+          <div className="border border-[#cddfe2] rounded-lg overflow-x-auto bg-white">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="border-b border-[#00509e] text-[#66a3ff] font-mono bg-[#001f3f]">
-                  <th className="py-2.5 px-3 font-semibold">Factor Name</th>
-                  <th className="py-2.5 px-3 font-semibold">Risk Value (0–100)</th>
-                  <th className="py-2.5 px-3 font-semibold text-center">Weight</th>
-                  <th className="py-2.5 px-3 font-semibold text-right">Calculation (Value × Weight)</th>
+                <tr className="border-b border-[#cddfe2] text-[#042F34] font-mono bg-[#E4EEF0]">
+                  <th className="py-2.5 px-3 font-bold">Factor Name</th>
+                  <th className="py-2.5 px-3 font-bold">Risk Value (0–100)</th>
+                  <th className="py-2.5 px-3 font-bold text-center">Weight</th>
+                  <th className="py-2.5 px-3 font-bold text-right">Contribution (Value × Weight)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#00509e]/60 font-mono">
+              <tbody className="divide-y divide-[#E4EEF0] font-mono">
                 {factorItems.map((f) => (
-                  <tr key={f.id} className="hover:bg-[#003366]/40 transition-colors">
+                  <tr key={f.id} className="hover:bg-[#E4EEF0]/40 transition-colors">
                     <td className="py-2.5 px-3">
-                      <div className="font-bold text-white font-sans flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: f.color }} />
-                        {f.name}
-                      </div>
-                      <div className="text-[10px] text-[#66a3ff] font-sans pl-4">{f.desc}</div>
+                      <div className="font-bold text-[#16232B] font-sans">{f.name}</div>
+                      <div className="text-[11px] text-[#16232B]/65 font-sans">{f.desc}</div>
                     </td>
 
                     <td className="py-2.5 px-3">
                       <div className="flex items-center gap-3">
-                        <span className="w-10 font-bold text-white text-right font-mono">{f.val.toFixed(0)}</span>
+                        <span className="w-8 font-bold text-[#042F34] text-right font-mono">{f.val.toFixed(0)}</span>
                         <input
                           type="range"
                           min="0"
                           max="100"
+                          step="1"
                           value={f.val}
-                          onChange={(e) => f.setVal(parseFloat(e.target.value) || 0)}
-                          className="w-28 sm:w-36 h-1 bg-[#001429] accent-[#007acc] rounded cursor-pointer"
+                          onChange={(e) => f.setVal(Number(e.target.value))}
+                          className="w-28 sm:w-44 accent-[#042F34] cursor-pointer"
                         />
                       </div>
                     </td>
 
                     <td className="py-2.5 px-3 text-center">
-                      <span className="px-2 py-0.5 rounded bg-[#001f3f] text-[#66a3ff] font-bold border border-[#00509e]">
-                        {f.weightStr} ({f.weightNum})
+                      <span className="px-2 py-0.5 rounded bg-[#E4EEF0] text-[#042F34] font-bold border border-[#cddfe2]">
+                        {f.weight}
                       </span>
                     </td>
 
-                    <td className="py-2.5 px-3 text-right font-bold text-emerald-400 font-mono text-sm">
-                      {f.val.toFixed(0)} × {f.weightNum.toFixed(2)} = +{f.contrib.toFixed(2)}
+                    <td className="py-2.5 px-3 text-right">
+                      <div className="font-bold text-[#042F34] text-sm">{f.contribution.toFixed(2)}</div>
+                      <div className="text-[10px] text-[#16232B]/60 font-mono">{f.calc}</div>
                     </td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
-                <tr className="border-t border-[#00509e] bg-[#001f3f] font-mono">
-                  <td colSpan={2} className="py-3 px-3 font-bold font-sans text-white text-sm">
-                    Total Weighted Risk Score = Σ (Risk Value × Weight)
+                <tr className="bg-[#E4EEF0] border-t-2 border-[#cddfe2] font-mono">
+                  <td colSpan={2} className="py-3 px-3 font-bold text-[#042F34] font-sans text-sm">
+                    Total Composite Risk Score
                   </td>
-                  <td className="py-3 px-3 text-center font-bold text-[#007acc]">
-                    100% (1.00)
+                  <td className="py-3 px-3 text-center font-bold text-[#042F34]">
+                    100%
                   </td>
-                  <td className="py-3 px-3 text-right font-extrabold text-white text-base">
+                  <td className="py-3 px-3 text-right font-extrabold text-[#042F34] text-base">
                     {totalScore} / 100
                   </td>
                 </tr>
@@ -287,55 +250,63 @@ export const WeightedRiskModelCard: React.FC<WeightedRiskModelCardProps> = ({ st
 
       </div>
 
-      {/* =================================================================== */}
-      {/* SLIDE 5: Risk Score and Risk Bands                                 */}
-      {/* =================================================================== */}
-      <div className="bg-[#001f3f] border border-[#00509e] rounded-xl p-5 sm:p-6 space-y-6 text-white shadow-xl">
-        <div className="pb-3 border-b border-[#00509e]">
-          <h2 className="text-xl font-bold text-white tracking-tight">
+      {/* 2. Risk Score and Risk Bands */}
+      <div className="bg-white border border-[#cddfe2] rounded-lg p-5 space-y-4 shadow-xs">
+        <div className="pb-3 border-b border-[#cddfe2]">
+          <h2 className="text-lg font-bold text-[#042F34] tracking-tight">
             Risk Score and Risk Bands
           </h2>
-          <p className="text-xs text-[#66a3ff] mt-0.5">
-            Classification of the final score into Low, Moderate, High, or Very High.
+          <p className="text-xs text-[#16232B]/70 mt-0.5">
+            Classification of the final 0–100 score into Low, Moderate, High, or Very High risk categories.
           </p>
         </div>
 
-        {/* Centerpiece Display */}
-        <div className="bg-[#00264d] border border-[#00509e] p-6 rounded-2xl flex flex-col items-center space-y-4">
+        <div className="bg-[#E4EEF0] border border-[#cddfe2] p-6 rounded-lg flex flex-col items-center space-y-4">
           
-          {/* Top Score (e.g. 53.5 / 100) */}
-          <div className="text-4xl sm:text-5xl font-extrabold font-mono text-white tracking-tight">
-            {totalScore} <span className="text-2xl text-[#66a3ff] font-normal">/ 100</span>
+          {/* Big Score Display */}
+          <div className="text-4xl sm:text-5xl font-extrabold font-mono text-[#042F34] tracking-tight">
+            {totalScore} <span className="text-xl text-[#16232B]/50 font-normal">/ 100</span>
           </div>
 
-          {/* Downward Pointer Triangle */}
-          <div className="w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-t-[16px] border-t-white" />
+          {/* Simple Pointer */}
+          <div className="w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-t-[12px] border-t-[#042F34]" />
 
-          {/* Risk Bands Bar: Low (0–30) | Moderate (31–60) | High (61–80) | Very High (81–100) */}
-          <div className="w-full max-w-2xl space-y-2">
-            <div className="grid grid-cols-4 rounded-xl overflow-hidden text-center text-xs font-mono font-bold shadow-lg border border-[#00509e]">
-              <div className="bg-[#2E9D64] text-white py-3 border-r border-[#001f3f]">
-                <div className="text-sm">Low</div>
-                <div className="text-[11px] opacity-90">0–30</div>
+          {/* 4 Risk Bands Bar */}
+          <div className="w-full max-w-xl space-y-1.5">
+            <div className="grid grid-cols-4 rounded-lg overflow-hidden text-center text-xs font-mono font-bold border border-[#cddfe2]">
+              <div className="bg-[#B5F2DB] text-[#042F34] py-2.5">
+                <div className="text-xs font-sans font-bold">Low</div>
+                <div className="text-[10px] opacity-85">0–30</div>
               </div>
-              <div className="bg-[#E5A93C] text-slate-950 py-3 border-r border-[#001f3f]">
-                <div className="text-sm">Moderate</div>
-                <div className="text-[11px] opacity-90">31–60</div>
+              <div className="bg-[#FFC933] text-[#042F34] py-2.5">
+                <div className="text-xs font-sans font-bold">Moderate</div>
+                <div className="text-[10px] opacity-85">31–60</div>
               </div>
-              <div className="bg-[#E5633C] text-white py-3 border-r border-[#001f3f]">
-                <div className="text-sm">High</div>
-                <div className="text-[11px] opacity-90">61–80</div>
+              <div className="bg-orange-500 text-white py-2.5">
+                <div className="text-xs font-sans font-bold">High</div>
+                <div className="text-[10px] opacity-85">61–80</div>
               </div>
-              <div className="bg-[#D9453B] text-white py-3">
-                <div className="text-sm">Very High</div>
-                <div className="text-[11px] opacity-90">81–100</div>
+              <div className="bg-rose-600 text-white py-2.5">
+                <div className="text-xs font-sans font-bold">Very High</div>
+                <div className="text-[10px] opacity-85">81–100</div>
               </div>
+            </div>
+
+            {/* Position Indicator Line */}
+            <div className="relative w-full h-2 bg-white rounded-full overflow-hidden border border-[#cddfe2]">
+              <div
+                className="absolute top-0 bottom-0 left-0 transition-all duration-300 rounded-full"
+                style={{
+                  width: `${Math.min(100, Math.max(0, totalScore))}%`,
+                  backgroundColor: bandHex,
+                }}
+              />
             </div>
           </div>
 
           {/* Verdict Banner */}
-          <div className="w-full max-w-2xl pt-2">
-            <div className={`w-full py-3.5 px-4 rounded-xl text-center font-bold text-sm sm:text-base font-sans tracking-wide shadow-md transition-colors ${bandClass}`}>
+          <div className="w-full max-w-xl">
+            <div className={`w-full py-2.5 px-4 rounded-lg text-center font-bold text-sm border shadow-xs ${bandClass}`}>
               A score of {totalScore} falls in the {riskBand} Risk band
             </div>
           </div>
@@ -343,94 +314,88 @@ export const WeightedRiskModelCard: React.FC<WeightedRiskModelCardProps> = ({ st
         </div>
       </div>
 
-      {/* How Each Concept Contributes */}
-      <div className="bg-[#001f3f] border border-[#00509e] rounded-xl p-5 sm:p-6 space-y-6 text-white shadow-xl">
-        <div className="pb-3 border-b border-[#00509e]">
-          <h2 className="text-xl font-bold text-white tracking-tight">
+      {/* 3. Foundational Concepts (Direct Contents) */}
+      <div className="bg-white border border-[#cddfe2] rounded-lg p-5 space-y-4 shadow-xs">
+        <div className="pb-3 border-b border-[#cddfe2]">
+          <h2 className="text-lg font-bold text-[#042F34] tracking-tight">
             How Each Concept Contributes
           </h2>
-          <p className="text-xs text-[#66a3ff] mt-0.5">
-            The six mathematical foundations connecting data to final risk classification.
+          <p className="text-xs text-[#16232B]/70 mt-0.5">
+            The mathematical foundations connecting market data to the final risk classification.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           
-          {/* Concept 1 */}
-          <div className="bg-[#00264d] border border-[#00509e] rounded-xl p-5 space-y-2">
-            <div className="flex items-center gap-3">
-              <span className="w-7 h-7 rounded-full bg-[#E5A93C] text-slate-950 font-bold font-mono text-sm flex items-center justify-center shrink-0">
+          <div className="bg-[#E4EEF0] border border-[#cddfe2] rounded-lg p-4 space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-[#042F34] text-[#B5F2DB] font-bold font-mono text-xs flex items-center justify-center">
                 1
               </span>
-              <h3 className="text-base font-bold text-white">Statistics</h3>
+              <h3 className="text-sm font-bold text-[#042F34]">Statistics</h3>
             </div>
-            <p className="text-xs text-[#cce0ff] leading-relaxed pt-1">
-              Analyses investment data and measures factors like volatility
+            <p className="text-xs text-[#16232B]/80 leading-relaxed">
+              Analyses historical price series to compute daily returns and standard deviation measuring past volatility.
             </p>
           </div>
 
-          {/* Concept 2 */}
-          <div className="bg-[#00264d] border border-[#00509e] rounded-xl p-5 space-y-2">
-            <div className="flex items-center gap-3">
-              <span className="w-7 h-7 rounded-full bg-[#E5A93C] text-slate-950 font-bold font-mono text-sm flex items-center justify-center shrink-0">
+          <div className="bg-[#E4EEF0] border border-[#cddfe2] rounded-lg p-4 space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-[#042F34] text-[#B5F2DB] font-bold font-mono text-xs flex items-center justify-center">
                 2
               </span>
-              <h3 className="text-base font-bold text-white">Probability</h3>
+              <h3 className="text-sm font-bold text-[#042F34]">Probability</h3>
             </div>
-            <p className="text-xs text-[#cce0ff] leading-relaxed pt-1">
-              Represents the likelihood of uncertain risk events
+            <p className="text-xs text-[#16232B]/80 leading-relaxed">
+              Quantifies the likelihood of adverse events like price declines or severe market slumps.
             </p>
           </div>
 
-          {/* Concept 3 */}
-          <div className="bg-[#00264d] border border-[#00509e] rounded-xl p-5 space-y-2">
-            <div className="flex items-center gap-3">
-              <span className="w-7 h-7 rounded-full bg-[#E5A93C] text-slate-950 font-bold font-mono text-sm flex items-center justify-center shrink-0">
+          <div className="bg-[#E4EEF0] border border-[#cddfe2] rounded-lg p-4 space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-[#042F34] text-[#B5F2DB] font-bold font-mono text-xs flex items-center justify-center">
                 3
               </span>
-              <h3 className="text-base font-bold text-white">Normalization</h3>
+              <h3 className="text-sm font-bold text-[#042F34]">Normalization</h3>
             </div>
-            <p className="text-xs text-[#cce0ff] leading-relaxed pt-1">
-              Puts different factors on a common 0–100 scale
+            <p className="text-xs text-[#16232B]/80 leading-relaxed">
+              Maps diverse units (percentages, currency volume, credit grades) onto a common 0–100 scale.
             </p>
           </div>
 
-          {/* Concept 4 */}
-          <div className="bg-[#00264d] border border-[#00509e] rounded-xl p-5 space-y-2">
-            <div className="flex items-center gap-3">
-              <span className="w-7 h-7 rounded-full bg-[#E5A93C] text-slate-950 font-bold font-mono text-sm flex items-center justify-center shrink-0">
+          <div className="bg-[#E4EEF0] border border-[#cddfe2] rounded-lg p-4 space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-[#042F34] text-[#B5F2DB] font-bold font-mono text-xs flex items-center justify-center">
                 4
               </span>
-              <h3 className="text-base font-bold text-white">Percentages</h3>
+              <h3 className="text-sm font-bold text-[#042F34]">Percentages</h3>
             </div>
-            <p className="text-xs text-[#cce0ff] leading-relaxed pt-1">
-              Represent the weight given to each risk factor
+            <p className="text-xs text-[#16232B]/80 leading-relaxed">
+              Assigns calibrated weights to each risk factor based on financial importance, summing to 100%.
             </p>
           </div>
 
-          {/* Concept 5 */}
-          <div className="bg-[#00264d] border border-[#00509e] rounded-xl p-5 space-y-2">
-            <div className="flex items-center gap-3">
-              <span className="w-7 h-7 rounded-full bg-[#E5A93C] text-slate-950 font-bold font-mono text-sm flex items-center justify-center shrink-0">
+          <div className="bg-[#E4EEF0] border border-[#cddfe2] rounded-lg p-4 space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-[#042F34] text-[#B5F2DB] font-bold font-mono text-xs flex items-center justify-center">
                 5
               </span>
-              <h3 className="text-base font-bold text-white">Weighted Sum</h3>
+              <h3 className="text-sm font-bold text-[#042F34]">Weighted Sum</h3>
             </div>
-            <p className="text-xs text-[#cce0ff] leading-relaxed pt-1">
-              Combines all factors by importance into overall risk
+            <p className="text-xs text-[#16232B]/80 leading-relaxed">
+              Combines individual factor scores by weight into a single synthesized risk measurement.
             </p>
           </div>
 
-          {/* Concept 6 */}
-          <div className="bg-[#00264d] border border-[#00509e] rounded-xl p-5 space-y-2">
-            <div className="flex items-center gap-3">
-              <span className="w-7 h-7 rounded-full bg-[#E5A93C] text-slate-950 font-bold font-mono text-sm flex items-center justify-center shrink-0">
+          <div className="bg-[#E4EEF0] border border-[#cddfe2] rounded-lg p-4 space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-[#042F34] text-[#B5F2DB] font-bold font-mono text-xs flex items-center justify-center">
                 6
               </span>
-              <h3 className="text-base font-bold text-white">Risk Scoring</h3>
+              <h3 className="text-sm font-bold text-[#042F34]">Risk Scoring</h3>
             </div>
-            <p className="text-xs text-[#cce0ff] leading-relaxed pt-1">
-              Turns the result into one 0–100 score, then classifies it into Low, Moderate, High or Very High
+            <p className="text-xs text-[#16232B]/80 leading-relaxed">
+              Evaluates the final 0–100 score and classifies it into Low, Moderate, High, or Very High bands.
             </p>
           </div>
 

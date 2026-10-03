@@ -7,13 +7,13 @@
 
 A weighted-sum model that combines five risk factors into one 0–100 score.
 
-Technical Tools (Slide 2):
+Technical Tools:
   - Python     : Model implementation
   - Pandas     : Data handling
   - NumPy      : Mathematical calculations
   - Matplotlib : Risk visualization
 
-Mathematical Foundations (Slide 3 & Slide 6):
+Mathematical Foundations:
   1. Statistics   : Analyses investment data and measures factors like volatility
   2. Probability  : Represents the likelihood of uncertain risk events
   3. Normalization: Puts different factors on a common 0–100 scale (0 = very low risk, 100 = very high risk)
@@ -34,7 +34,7 @@ import random
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Tuple
 
-# Slide 4: Weights Definition (Sum = 100%)
+# Weights Definition (Sum = 100%)
 WEIGHT_VOLATILITY = 0.30
 WEIGHT_LIQUIDITY = 0.20
 WEIGHT_CORRELATION = 0.20
@@ -51,6 +51,7 @@ INDIAN_STOCKS_PRESETS = {
     "ITC": {"name": "ITC Limited", "price": 512.40, "vol": 0.011, "debt": 0.04, "credit": 10.0, "currency": "₹", "exchange": "NSE"},
     "BHARTIARTL": {"name": "Bharti Airtel Limited", "price": 1712.50, "vol": 0.016, "debt": 0.42, "credit": 22.0, "currency": "₹", "exchange": "NSE"},
     "LT": {"name": "Larsen & Toubro Ltd.", "price": 3645.00, "vol": 0.016, "debt": 0.38, "credit": 18.0, "currency": "₹", "exchange": "NSE"},
+    "SBIN": {"name": "State Bank of India", "price": 789.20, "vol": 0.018, "debt": 0.58, "credit": 18.0, "currency": "₹", "exchange": "NSE"},
     "NIFTY50": {"name": "NIFTY 50 Benchmark Index", "price": 25420.50, "vol": 0.010, "debt": 0.25, "credit": 10.0, "currency": "₹", "exchange": "NSE"},
 }
 
@@ -60,147 +61,115 @@ class AnnriyaRiskFinder:
         symbol: str = "RELIANCE",
         prices: List[float] = None,
         volumes: List[float] = None,
-        debt_ratio: float = None,
-        credit_rating_penalty: float = None
+        debt_ratio: float = 0.34,
+        credit_rating_penalty: float = 14.0,
+        benchmark_beta: float = 1.05,
     ):
         self.symbol = symbol.upper()
         
         preset = INDIAN_STOCKS_PRESETS.get(self.symbol, None)
         if preset:
-            self.currency = preset["currency"]
-            self.exchange = preset["exchange"]
-            self.debt_ratio = debt_ratio if debt_ratio is not None else preset["debt"]
-            self.credit_rating_penalty = credit_rating_penalty if credit_rating_penalty is not None else preset["credit"]
-            self.base_price = preset["price"]
-            self.base_vol = preset["vol"]
+            self.currency = preset.get("currency", "₹")
+            self.exchange = preset.get("exchange", "NSE")
+            self.debt_ratio = preset.get("debt", debt_ratio)
+            self.credit_rating_penalty = preset.get("credit", credit_rating_penalty)
+            base_p = preset.get("price", 1000.0)
+            vol = preset.get("vol", 0.016)
         else:
             self.currency = "$"
             self.exchange = "NASDAQ"
-            self.debt_ratio = debt_ratio if debt_ratio is not None else 0.28
-            self.credit_rating_penalty = credit_rating_penalty if credit_rating_penalty is not None else 15.0
-            self.base_price = 150.0
-            self.base_vol = 0.018
+            self.debt_ratio = debt_ratio
+            self.credit_rating_penalty = credit_rating_penalty
+            base_p = 230.0
+            vol = 0.016
 
-        if prices and len(prices) > 2:
+        self.benchmark_beta = benchmark_beta
+
+        if prices is not None and len(prices) >= 2:
             self.prices = prices
-            self.volumes = volumes if volumes else [5e6] * len(prices)
-            self.dates = [f"Day-{i+1}" for i in range(len(prices))]
+            self.volumes = volumes if volumes else [4e6] * len(prices)
         else:
-            self.dates, self.prices, self.volumes = self._generate_sample_series()
+            self.prices, self.volumes = self._generate_simulated_market_data(base_p, vol)
 
-    def _generate_sample_series(self) -> Tuple[List[str], List[float], List[float]]:
-        """Generates 252 trading days of price and volume data."""
-        random.seed(abs(hash(self.symbol)) % 10000)
-        start_date = datetime(2025, 1, 2)
-        dates, prices, volumes = [], [], []
-
-        current_price = self.base_price
-        vol = self.base_vol
-
-        for i in range(252):
-            d = start_date + timedelta(days=int(i * 1.4))
-            dates.append(d.strftime("%Y-%m-%d"))
-
-            daily_return = random.gauss(0.0006, vol)
-            current_price = max(2.0, current_price * (1.0 + daily_return))
-            prices.append(round(current_price, 2))
-            volumes.append(round(random.uniform(2e6, 8e6), 0))
-
-        return dates, prices, volumes
-
-    # =========================================================================
-    # Concept 1: STATISTICS (Slide 3 & Slide 6)
-    # =========================================================================
-    def calculate_returns(self) -> List[float]:
-        """Calculates daily returns: r_t = (P_t - P_{t-1}) / P_{t-1}."""
-        returns = []
-        for i in range(1, len(self.prices)):
-            p0 = self.prices[i - 1]
-            p1 = self.prices[i]
-            if p0 > 0:
-                returns.append((p1 - p0) / p0)
-        return returns if returns else [0.0]
+    def _generate_simulated_market_data(self, base_price: float, vol: float) -> Tuple[List[float], List[float]]:
+        prices = [base_price]
+        volumes = [4500000.0]
+        rng = random.Random(sum(ord(c) for c in self.symbol))
+        for _ in range(251):
+            r = (0.12 / 252.0) + (rng.random() - 0.49) * vol
+            p = max(1.0, prices[-1] * (1.0 + r))
+            prices.append(round(p, 2))
+            volumes.append(round(2e6 + rng.random() * 8e6, 0))
+        return prices, volumes
 
     def compute_statistics(self) -> Dict[str, float]:
-        returns = self.calculate_returns()
-        n = len(returns)
-        if n < 2:
-            return {"mean": 0.0, "daily_std": 0.015, "annualized_vol": 0.238}
+        returns = []
+        for i in range(1, len(self.prices)):
+            prev = self.prices[i - 1]
+            curr = self.prices[i]
+            if prev > 0:
+                returns.append((curr - prev) / prev)
 
-        mean_ret = sum(returns) / n
-        variance = sum((r - mean_ret) ** 2 for r in returns) / (n - 1)
-        daily_std = math.sqrt(variance)
+        N = len(returns)
+        if N < 2:
+            return {"mean_daily_return": 0.0, "daily_std": 0.015, "annualized_vol": 0.24}
+
+        mean_ret = sum(returns) / N
+        var_sum = sum((r - mean_ret) ** 2 for r in returns)
+        daily_std = math.sqrt(var_sum / (N - 1))
         annualized_vol = daily_std * math.sqrt(252.0)
 
         return {
-            "mean": mean_ret,
+            "mean_daily_return": mean_ret,
             "daily_std": daily_std,
-            "annualized_vol": annualized_vol
+            "annualized_vol": annualized_vol,
         }
 
-    # =========================================================================
-    # Concept 2: PROBABILITY (Slide 3 & Slide 6)
-    # =========================================================================
     def compute_probabilities(self) -> Dict[str, float]:
-        returns = self.calculate_returns()
-        n = len(returns)
-        if n == 0:
-            return {"prob_downside_day": 50.0, "prob_severe_slump": 5.0}
+        returns = []
+        for i in range(1, len(self.prices)):
+            prev = self.prices[i - 1]
+            curr = self.prices[i]
+            if prev > 0:
+                returns.append((curr - prev) / prev)
 
-        downside_count = sum(1 for r in returns if r < 0)
-        severe_count = sum(1 for r in returns if r <= -0.02)
+        N = len(returns)
+        if N == 0:
+            return {"prob_downside_pct": 50.0, "prob_severe_slump_pct": 5.0}
+
+        down_days = sum(1 for r in returns if r < 0)
+        severe_slump_days = sum(1 for r in returns if r <= -0.02)
 
         return {
-            "prob_downside_day": round((downside_count / n) * 100.0, 1),
-            "prob_severe_slump": round((severe_count / n) * 100.0, 1)
+            "prob_downside_pct": round((down_days / N) * 100.0, 1),
+            "prob_severe_slump_pct": round((severe_slump_days / N) * 100.0, 1),
         }
 
-    # =========================================================================
-    # Concept 3: NORMALIZATION (Slide 3 & Slide 6)
-    # =========================================================================
-    @staticmethod
-    def normalize(value: float, min_val: float, max_val: float) -> float:
-        if max_val == min_val:
+    def normalize(self, raw_value: float, min_b: float, max_b: float) -> float:
+        if max_b == min_b:
             return 50.0
-        scaled = ((value - min_val) / (max_val - min_val)) * 100.0
-        return max(0.0, min(100.0, round(scaled, 1)))
+        scaled = ((raw_value - min_b) / (max_b - min_b)) * 100.0
+        return round(max(0.0, min(100.0, scaled)), 1)
 
     def factor_volatility(self) -> float:
         stats = self.compute_statistics()
         return self.normalize(stats["annualized_vol"], 0.05, 0.50)
 
     def factor_liquidity(self) -> float:
-        dollar_vols = [p * v for p, v in zip(self.prices, self.volumes)]
-        avg_dv = sum(dollar_vols) / len(dollar_vols) if dollar_vols else 1e7
-        log_dv = math.log10(max(10000.0, avg_dv))
-        return self.normalize(9.0 - log_dv, 0.0, 3.0)
+        avg_vol = sum(self.volumes) / len(self.volumes)
+        dollar_vol = avg_vol * self.prices[-1]
+        log_v = math.log10(max(10000, dollar_vol))
+        return self.normalize(9.0 - log_v, 0.0, 3.0)
 
     def factor_market_correlation(self) -> float:
-        returns = self.calculate_returns()
-        n = len(returns)
-        if n < 2:
-            return 45.0
-
-        random.seed(42)
-        market_returns = [random.gauss(0.0005, 0.01) for _ in range(n)]
-        mean_stock = sum(returns) / n
-        mean_mkt = sum(market_returns) / n
-
-        cov = sum((returns[i] - mean_stock) * (market_returns[i] - mean_mkt) for i in range(n)) / (n - 1)
-        var_mkt = sum((m - mean_mkt) ** 2 for m in market_returns) / (n - 1)
-        beta = cov / var_mkt if var_mkt > 0 else 1.0
-
-        return self.normalize(beta, 0.3, 2.0)
+        return self.normalize(self.benchmark_beta, 0.3, 2.0)
 
     def factor_leverage(self) -> float:
         return self.normalize(self.debt_ratio, 0.10, 0.80)
 
     def factor_track_record(self) -> float:
-        return max(0.0, min(100.0, float(self.credit_rating_penalty)))
+        return round(max(0.0, min(100.0, self.credit_rating_penalty)), 1)
 
-    # =========================================================================
-    # Concept 4 & 5: PERCENTAGES & WEIGHTED SUM (Slide 4)
-    # =========================================================================
     def calculate_weighted_sum(self) -> Dict[str, Any]:
         val_vol = self.factor_volatility()
         val_liq = self.factor_liquidity()
@@ -216,23 +185,23 @@ class AnnriyaRiskFinder:
 
         total_score = round(contrib_vol + contrib_liq + contrib_corr + contrib_lev + contrib_track, 1)
 
-        # Concept 6: RISK SCORING AND RISK BANDS (Slide 5)
+        # Risk scoring and risk bands
         if total_score <= 30.0:
             risk_band = "Low"
             risk_range = "0–30"
-            color_hex = "#2E9D64"
+            color_hex = "#10b981"
         elif total_score <= 60.0:
             risk_band = "Moderate"
             risk_range = "31–60"
-            color_hex = "#E5A93C"
+            color_hex = "#f59e0b"
         elif total_score <= 80.0:
             risk_band = "High"
             risk_range = "61–80"
-            color_hex = "#E5633C"
+            color_hex = "#f97316"
         else:
             risk_band = "Very High"
             risk_range = "81–100"
-            color_hex = "#D9453B"
+            color_hex = "#ef4444"
 
         verdict = f"A score of {total_score} falls in the {risk_band} Risk band"
         stats = self.compute_statistics()

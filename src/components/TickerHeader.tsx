@@ -10,7 +10,7 @@ interface TickerHeaderProps {
 
 export const TickerHeader: React.FC<TickerHeaderProps> = ({ stock, onSelectSymbol }) => {
   const { symbol, name, sector, price, change, changePercent, marketCap, peRatio, stats, fiveFactorModel, currency, exchange } = stock;
-  const [marketFilter, setMarketFilter] = useState<'ALL' | 'IN' | 'US'>('ALL');
+  const [marketFilter, setMarketFilter] = useState<'ALL' | 'IN' | 'US'>('IN');
 
   const curr = currency || (stock.market === 'IN' ? '₹' : '$');
   const exch = exchange || (stock.market === 'IN' ? 'NSE' : 'NASDAQ');
@@ -20,126 +20,136 @@ export const TickerHeader: React.FC<TickerHeaderProps> = ({ stock, onSelectSymbo
     return s.market === marketFilter;
   });
 
-  const bandColor =
-    fiveFactorModel.riskBand === 'Low'
-      ? 'text-emerald-400'
-      : fiveFactorModel.riskBand === 'Moderate'
-      ? 'text-amber-400'
-      : fiveFactorModel.riskBand === 'High'
-      ? 'text-orange-400'
-      : 'text-rose-500';
+  const getRiskBadge = (band: string) => {
+    switch (band) {
+      case 'Low':
+        return 'bg-[#B5F2DB] text-[#042F34] border-[#8ee3c2]';
+      case 'Moderate':
+        return 'bg-[#FFC933]/20 text-[#825b00] border-[#FFC933]';
+      case 'High':
+        return 'bg-orange-100 text-orange-900 border-orange-300';
+      case 'Very High':
+      default:
+        return 'bg-rose-100 text-rose-900 border-rose-300';
+    }
+  };
 
   return (
-    <section className="bg-[#001f3f] border-b border-[#00509e]/80 py-4 px-4 sm:px-6 lg:px-8 text-white">
-      <div className="max-w-7xl mx-auto space-y-4">
+    <section className="bg-white border-b border-[#cddfe2] py-4 px-4 sm:px-6">
+      <div className="max-w-7xl mx-auto space-y-3.5">
         
-        {/* Watchlist Quick Select with Indian / Global filter */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 overflow-x-auto pb-1 text-xs">
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="text-[#66a3ff] font-medium">Market:</span>
-            <div className="flex items-center bg-[#001429] p-0.5 rounded border border-[#00509e]">
+        {/* Market Filter & Quick Stock Picker */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-[#16232B]/70 font-medium">Select Market:</span>
+            <div className="flex items-center bg-[#E4EEF0] p-0.5 rounded-md border border-[#cddfe2]">
+              <button
+                onClick={() => setMarketFilter('IN')}
+                className={`px-2.5 py-1 rounded text-xs transition-colors font-medium ${
+                  marketFilter === 'IN' ? 'bg-[#042F34] text-[#B5F2DB] font-bold shadow-xs' : 'text-[#16232B] hover:text-[#042F34]'
+                }`}
+              >
+                🇮🇳 Indian Stocks
+              </button>
+              <button
+                onClick={() => setMarketFilter('US')}
+                className={`px-2.5 py-1 rounded text-xs transition-colors font-medium ${
+                  marketFilter === 'US' ? 'bg-[#042F34] text-[#B5F2DB] font-bold shadow-xs' : 'text-[#16232B] hover:text-[#042F34]'
+                }`}
+              >
+                🇺🇸 US Stocks
+              </button>
               <button
                 onClick={() => setMarketFilter('ALL')}
-                className={`px-2 py-0.5 rounded text-[11px] font-mono transition-colors ${
-                  marketFilter === 'ALL' ? 'bg-[#007acc] text-white font-bold' : 'text-[#66a3ff] hover:text-white'
+                className={`px-2.5 py-1 rounded text-xs transition-colors font-medium ${
+                  marketFilter === 'ALL' ? 'bg-[#042F34] text-[#B5F2DB] font-bold shadow-xs' : 'text-[#16232B] hover:text-[#042F34]'
                 }`}
               >
                 All
               </button>
-              <button
-                onClick={() => setMarketFilter('IN')}
-                className={`px-2 py-0.5 rounded text-[11px] font-mono transition-colors ${
-                  marketFilter === 'IN' ? 'bg-[#007acc] text-white font-bold' : 'text-[#66a3ff] hover:text-white'
-                }`}
-              >
-                🇮🇳 Indian (NSE)
-              </button>
-              <button
-                onClick={() => setMarketFilter('US')}
-                className={`px-2 py-0.5 rounded text-[11px] font-mono transition-colors ${
-                  marketFilter === 'US' ? 'bg-[#007acc] text-white font-bold' : 'text-[#66a3ff] hover:text-white'
-                }`}
-              >
-                🇺🇸 US
-              </button>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
             {filteredWatchlist.map((s) => (
               <button
                 key={s.symbol}
                 onClick={() => onSelectSymbol(s.symbol)}
-                className={`px-2 py-0.5 text-xs font-mono rounded transition-colors shrink-0 flex items-center gap-1 ${
+                className={`px-2.5 py-1 text-xs font-mono rounded-md transition-colors shrink-0 flex items-center gap-1.5 ${
                   symbol === s.symbol
-                    ? 'bg-[#007acc] text-white font-bold ring-1 ring-[#cce0ff]'
-                    : 'text-[#cce0ff] hover:text-white bg-[#00264d] border border-[#00509e]/60'
+                    ? 'bg-[#042F34] text-[#B5F2DB] font-bold shadow-xs'
+                    : 'text-[#16232B] bg-[#E4EEF0] hover:bg-[#d6e6e8] border border-[#cddfe2]'
                 }`}
               >
                 <span>{s.symbol}</span>
-                <span className="text-[10px] opacity-75">{s.currency}{s.price.toFixed(0)}</span>
+                <span className="text-[11px] opacity-75">{s.currency}{s.price.toFixed(0)}</span>
               </button>
             ))}
           </div>
         </div>
 
-        {/* Overview Box */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#00264d] p-4 rounded-xl border border-[#00509e]">
+        {/* Selected Stock Overview Card */}
+        <div className="bg-[#E4EEF0] border border-[#cddfe2] rounded-lg p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
           
+          {/* Ticker & Company Name */}
           <div className="space-y-1">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl font-extrabold font-mono tracking-tight text-white">{symbol}</span>
-              <span className="text-sm font-medium text-[#cce0ff]">{name}</span>
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#001429] border border-[#00509e] text-amber-400 font-bold">
+            <div className="flex items-center gap-2.5">
+              <span className="text-2xl font-bold font-mono tracking-tight text-[#042F34]">{symbol}</span>
+              <span className="text-base font-medium text-[#16232B]">{name}</span>
+              <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-[#B5F2DB] text-[#042F34] font-bold border border-[#8ee3c2]">
                 {exch}
               </span>
             </div>
 
-            <div className="flex items-center gap-3 text-xs text-[#66a3ff]">
+            <div className="flex items-center gap-2 text-xs text-[#16232B]/70">
               <span>{sector}</span>
-              <span aria-hidden="true">·</span>
-              <span>Cap: <strong className="text-white font-mono">{marketCap}</strong></span>
-              {peRatio && peRatio > 0 && (
+              <span>•</span>
+              <span>Market Cap: <strong className="text-[#042F34] font-mono">{marketCap}</strong></span>
+              {peRatio && (
                 <>
-                  <span aria-hidden="true">·</span>
-                  <span>P/E: <strong className="text-white font-mono">{peRatio}</strong></span>
+                  <span>•</span>
+                  <span>P/E: <strong className="text-[#042F34] font-mono">{peRatio}</strong></span>
                 </>
               )}
             </div>
           </div>
 
-          <div className="flex items-center gap-6 shrink-0 font-mono">
-            {/* Price Box with Currency Symbol */}
+          {/* Price, Volatility & Risk Band Pill */}
+          <div className="flex flex-wrap items-center gap-6">
             <div>
-              <div className="text-[10px] uppercase text-[#66a3ff]">Current Price</div>
-              <div className="text-2xl font-bold text-white">{curr}{price.toFixed(2)}</div>
-              <div className={`text-xs flex items-center gap-1 ${change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {change >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                <span>{change >= 0 ? '+' : ''}{curr}{change.toFixed(2)} ({changePercent >= 0 ? '+' : ''}{changePercent.toFixed(2)}%)</span>
+              <div className="text-[11px] text-[#16232B]/70 font-medium uppercase tracking-wider">Current Price</div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-bold font-mono text-[#042F34]">
+                  {curr}{price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+                <span
+                  className={`text-xs font-mono font-bold flex items-center gap-0.5 ${
+                    change >= 0 ? 'text-[#065F46]' : 'text-rose-600'
+                  }`}
+                >
+                  {change >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+                  {change >= 0 ? '+' : ''}{change.toFixed(2)} ({changePercent >= 0 ? '+' : ''}{changePercent.toFixed(2)}%)
+                </span>
               </div>
             </div>
 
-            <div className="h-8 w-px bg-[#00509e]" />
-
-            {/* Risk Score */}
-            <div>
-              <div className="text-[10px] uppercase text-[#66a3ff]">Risk Score</div>
-              <div className="text-2xl font-bold text-white flex items-baseline gap-1">
-                <span>{fiveFactorModel.totalScore}</span>
-                <span className="text-xs text-[#66a3ff]">/100</span>
-              </div>
-              <div className={`text-xs font-bold font-sans ${bandColor}`}>
-                {fiveFactorModel.riskBand} Risk ({fiveFactorModel.riskRange})
+            <div className="border-l border-[#cddfe2] pl-4">
+              <div className="text-[11px] text-[#16232B]/70 font-medium uppercase tracking-wider">Annualized Volatility</div>
+              <div className="text-xl font-bold font-mono text-[#042F34]">
+                {stats.annualizedVolatility}%
               </div>
             </div>
 
-            <div className="h-8 w-px bg-[#00509e]" />
-
-            {/* Annualized Volatility */}
-            <div>
-              <div className="text-[10px] uppercase text-[#66a3ff]">Volatility (σ)</div>
-              <div className="text-2xl font-bold text-white">{stats.annualizedVolatility}%</div>
-              <div className="text-xs text-[#66a3ff]">Annualized</div>
+            <div className="border-l border-[#cddfe2] pl-4">
+              <div className="text-[11px] text-[#16232B]/70 font-medium uppercase tracking-wider">Risk Score</div>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-2xl font-extrabold font-mono text-[#042F34]">
+                  {fiveFactorModel.totalScore}
+                </span>
+                <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${getRiskBadge(fiveFactorModel.riskBand)}`}>
+                  {fiveFactorModel.riskBand} Risk
+                </span>
+              </div>
             </div>
           </div>
 

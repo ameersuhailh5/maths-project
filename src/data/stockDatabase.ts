@@ -25,7 +25,7 @@ function generateDailyHistory(
 
     if (d.getDay() === 0 || d.getDay() === 6) continue;
 
-    // Pseudo-deterministic random using seed and index
+    // Deterministic pseudo-random using seed and index
     const pseudoRandom = Math.sin(seedNum * 997 + i * 13) * 10000;
     const randNorm = (pseudoRandom - Math.floor(pseudoRandom)) - 0.49;
 
@@ -80,7 +80,7 @@ const RAW_STOCKS: RawStockConfig[] = [
     debtRatio: 0.34,
     avgDollarVolume: 1.8e8, // High liquidity
     beta: 1.05,
-    creditRatingRisk: 14.0, // AAA domestic rating
+    creditRatingRisk: 14.0, // Domestic AAA
     history: generateDailyHistory(2650, 0.015, 0.16, 101),
   },
   {
@@ -95,11 +95,29 @@ const RAW_STOCKS: RawStockConfig[] = [
     changePercent: 0.92,
     marketCap: '₹15.1 Lakh Cr',
     peRatio: 31.6,
-    debtRatio: 0.08, // Almost zero debt
+    debtRatio: 0.08, // Debt-free balance sheet
     avgDollarVolume: 9.5e7,
     beta: 0.78, // Defensive IT
     creditRatingRisk: 8.0, // AAA Highest Tier
     history: generateDailyHistory(3750, 0.013, 0.14, 202),
+  },
+  {
+    symbol: 'HDFCBANK',
+    name: 'HDFC Bank Limited',
+    sector: 'Banking & Financials',
+    market: 'IN',
+    currency: '₹',
+    exchange: 'NSE',
+    price: 1756.80,
+    change: 14.60,
+    changePercent: 0.84,
+    marketCap: '₹13.4 Lakh Cr',
+    peRatio: 19.5,
+    debtRatio: 0.52, // Banking leverage
+    avgDollarVolume: 1.4e8,
+    beta: 1.10,
+    creditRatingRisk: 15.0, // Systemic bank
+    history: generateDailyHistory(1520, 0.014, 0.18, 404),
   },
   {
     symbol: 'INFY',
@@ -120,42 +138,6 @@ const RAW_STOCKS: RawStockConfig[] = [
     history: generateDailyHistory(1580, 0.017, 0.22, 303),
   },
   {
-    symbol: 'HDFCBANK',
-    name: 'HDFC Bank Limited',
-    sector: 'Banking & Financials',
-    market: 'IN',
-    currency: '₹',
-    exchange: 'NSE',
-    price: 1756.80,
-    change: 14.60,
-    changePercent: 0.84,
-    marketCap: '₹13.4 Lakh Cr',
-    peRatio: 19.5,
-    debtRatio: 0.52, // Banking leverage
-    avgDollarVolume: 1.4e8,
-    beta: 1.10,
-    creditRatingRisk: 15.0, // Domestic systemically important bank
-    history: generateDailyHistory(1520, 0.014, 0.18, 404),
-  },
-  {
-    symbol: 'TATAMOTORS',
-    name: 'Tata Motors Limited',
-    sector: 'Automobile & EV',
-    market: 'IN',
-    currency: '₹',
-    exchange: 'NSE',
-    price: 968.75,
-    change: -15.80,
-    changePercent: -1.61,
-    marketCap: '₹3.55 Lakh Cr',
-    peRatio: 16.4,
-    debtRatio: 0.45,
-    avgDollarVolume: 1.2e8,
-    beta: 1.38, // High beta auto cyclical
-    creditRatingRisk: 28.0,
-    history: generateDailyHistory(790, 0.024, 0.25, 505),
-  },
-  {
     symbol: 'ICICIBANK',
     name: 'ICICI Bank Limited',
     sector: 'Banking & Financials',
@@ -174,6 +156,24 @@ const RAW_STOCKS: RawStockConfig[] = [
     history: generateDailyHistory(1050, 0.015, 0.22, 606),
   },
   {
+    symbol: 'TATAMOTORS',
+    name: 'Tata Motors Limited',
+    sector: 'Automobile & EV',
+    market: 'IN',
+    currency: '₹',
+    exchange: 'NSE',
+    price: 968.75,
+    change: -15.80,
+    changePercent: -1.61,
+    marketCap: '₹3.55 Lakh Cr',
+    peRatio: 16.4,
+    debtRatio: 0.45,
+    avgDollarVolume: 1.2e8,
+    beta: 1.38,
+    creditRatingRisk: 28.0,
+    history: generateDailyHistory(790, 0.024, 0.25, 505),
+  },
+  {
     symbol: 'ITC',
     name: 'ITC Limited',
     sector: 'Consumer Goods (FMCG)',
@@ -185,9 +185,9 @@ const RAW_STOCKS: RawStockConfig[] = [
     changePercent: 0.41,
     marketCap: '₹6.38 Lakh Cr',
     peRatio: 29.1,
-    debtRatio: 0.04, // Pristine debt-free balance sheet
+    debtRatio: 0.04, // Low debt
     avgDollarVolume: 8.5e7,
-    beta: 0.58, // Low market volatility
+    beta: 0.58, // Low volatility
     creditRatingRisk: 10.0,
     history: generateDailyHistory(440, 0.011, 0.16, 707),
   },
@@ -226,6 +226,60 @@ const RAW_STOCKS: RawStockConfig[] = [
     beta: 1.02,
     creditRatingRisk: 18.0,
     history: generateDailyHistory(3200, 0.016, 0.16, 909),
+  },
+  {
+    symbol: 'SBIN',
+    name: 'State Bank of India',
+    sector: 'Public Sector Banking',
+    market: 'IN',
+    currency: '₹',
+    exchange: 'NSE',
+    price: 789.20,
+    change: 6.40,
+    changePercent: 0.82,
+    marketCap: '₹7.04 Lakh Cr',
+    peRatio: 11.2,
+    debtRatio: 0.58,
+    avgDollarVolume: 1.3e8,
+    beta: 1.20,
+    creditRatingRisk: 18.0,
+    history: generateDailyHistory(620, 0.018, 0.28, 888),
+  },
+  {
+    symbol: 'BAJFINANCE',
+    name: 'Bajaj Finance Limited',
+    sector: 'Financial Services (NBFC)',
+    market: 'IN',
+    currency: '₹',
+    exchange: 'NSE',
+    price: 6920.00,
+    change: -45.00,
+    changePercent: -0.65,
+    marketCap: '₹4.28 Lakh Cr',
+    peRatio: 28.6,
+    debtRatio: 0.55,
+    avgDollarVolume: 9.2e7,
+    beta: 1.25,
+    creditRatingRisk: 16.0,
+    history: generateDailyHistory(6400, 0.019, 0.12, 777),
+  },
+  {
+    symbol: 'SUNPHARMA',
+    name: 'Sun Pharmaceutical Industries',
+    sector: 'Healthcare & Pharma',
+    market: 'IN',
+    currency: '₹',
+    exchange: 'NSE',
+    price: 1835.40,
+    change: 14.20,
+    changePercent: 0.78,
+    marketCap: '₹4.40 Lakh Cr',
+    peRatio: 38.5,
+    debtRatio: 0.15,
+    avgDollarVolume: 7.2e7,
+    beta: 0.65,
+    creditRatingRisk: 12.0,
+    history: generateDailyHistory(1500, 0.013, 0.24, 666),
   },
   {
     symbol: 'NIFTY50',
@@ -383,7 +437,7 @@ export function getStockData(querySymbol: string): StockQuote {
 
   // Dynamic generator for custom symbols
   const seed = cleanSymbol.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const isIndianFormat = ['TATA', 'RELI', 'INFY', 'HDFC', 'ICICI', 'BHARTI', 'WIPRO', 'ADANI', 'SBIN', 'ITC'].some(p => cleanSymbol.includes(p));
+  const isIndianFormat = ['TATA', 'RELI', 'INFY', 'HDFC', 'ICICI', 'BHARTI', 'WIPRO', 'ADANI', 'SBIN', 'ITC', 'BAJAJ'].some(p => cleanSymbol.includes(p));
   
   const currency = isIndianFormat ? '₹' : '$';
   const exchange = isIndianFormat ? 'NSE' : 'NASDAQ';

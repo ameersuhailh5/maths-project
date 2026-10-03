@@ -17,7 +17,7 @@ export interface PriceProjectionPoint {
   isForecast: boolean;
 }
 
-// Factor Detail following Slide 4 of the PPT
+// Factor Detail for the 5-Factor Model
 export interface FactorDetail {
   id: 'volatility' | 'liquidity' | 'marketCorrelation' | 'leverageDebt' | 'trackRecordCredit';
   name: string;
@@ -32,7 +32,7 @@ export interface FactorDetail {
   description: string;
 }
 
-// 5-Factor Weighted-Sum Model (Slides 1, 3, 4, 5, 6)
+// 5-Factor Weighted-Sum Model
 export interface FiveFactorRiskModel {
   volatility: FactorDetail;
   liquidity: FactorDetail;
@@ -46,7 +46,7 @@ export interface FiveFactorRiskModel {
   verdictText: string;
 }
 
-// Core Statistical & Probability Foundations (Slide 3)
+// Core Statistical & Probability Foundations
 export interface StatisticalFoundations {
   sampleSize: number;
   meanDailyReturn: number;

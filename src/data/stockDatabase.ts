@@ -17,7 +17,7 @@ function generateDailyHistory(
   const totalDays = 252; // 1 trading year
   const startDate = new Date(2025, 0, 2);
 
-  let currentPrice = basePrice;
+  let prevClose = basePrice * 0.94;
 
   for (let i = 0; i < totalDays; i++) {
     const d = new Date(startDate);
@@ -30,12 +30,25 @@ function generateDailyHistory(
     const randNorm = (pseudoRandom - Math.floor(pseudoRandom)) - 0.49;
 
     const dailyReturn = trend / 252 + randNorm * volatility;
-    currentPrice = Math.max(1.0, currentPrice * (1 + dailyReturn));
+    
+    // Realistic open, high, low, close
+    const openNoise = (((Math.sin(seedNum * 333 + i * 7) * 10000) % 1) - 0.5) * 0.008;
+    const open = Number((prevClose * (1 + openNoise)).toFixed(2));
+    const close = Number(Math.max(1.0, prevClose * (1 + dailyReturn)).toFixed(2));
+    const intradayRange = Math.max(Math.abs(close - open), close * (0.008 + Math.abs(randNorm) * 0.018));
+    const high = Number((Math.max(open, close) + intradayRange * 0.55).toFixed(2));
+    const low = Number((Math.max(0.5, Math.min(open, close) - intradayRange * 0.45)).toFixed(2));
+    const volume = Math.round(1.5e6 + Math.abs(Math.sin(i * 0.7 + seedNum)) * 7.5e6);
+
+    prevClose = close;
 
     points.push({
       date: d.toISOString().split('T')[0],
-      price: Number(currentPrice.toFixed(2)),
-      volume: Math.round(1e6 + Math.abs(Math.sin(i)) * 6e6),
+      price: close,
+      open,
+      high,
+      low,
+      volume,
     });
   }
 

@@ -3,20 +3,48 @@ import { StockQuote } from './types/stock';
 import { getStockData } from './data/stockDatabase';
 import { Navbar } from './components/Navbar';
 import { TickerHeader } from './components/TickerHeader';
+import { TradingViewLiveTracker } from './components/TradingViewLiveTracker';
 import { WeightedRiskModelCard } from './components/WeightedRiskModelCard';
 import { FromRawDataToRiskValues } from './components/FromRawDataToRiskValues';
-import { TechnicalToolsCard } from './components/TechnicalToolsCard';
-import { InteractiveCharts } from './components/InteractiveCharts';
 import { Shield } from 'lucide-react';
 
 export default function App() {
   const [currentSymbol, setCurrentSymbol] = useState<string>('RELIANCE');
   const [stock, setStock] = useState<StockQuote>(() => getStockData('RELIANCE'));
-  const [activeTab, setActiveTab] = useState<'model' | 'dataValues' | 'tools' | 'charts'>('model');
+  const [activeTab, setActiveTab] = useState<'tracker' | 'model' | 'dataValues'>('tracker');
+  const [isLiveApiLoading, setIsLiveApiLoading] = useState<boolean>(false);
 
   useEffect(() => {
-    const fetched = getStockData(currentSymbol);
-    setStock(fetched);
+    // 1. Immediately apply baseline from local database
+    const localBaseline = getStockData(currentSymbol);
+    setStock(localBaseline);
+
+    // 2. Fetch live Indian / Global Stock Market API quote & real history
+    let isCancelled = false;
+    setIsLiveApiLoading(true);
+
+    fetch(`/api/stock/${encodeURIComponent(currentSymbol)}`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((data: StockQuote) => {
+        if (!isCancelled && data && data.symbol) {
+          setStock(data);
+        }
+      })
+      .catch((err) => {
+        console.warn(`[App] API live fetch notice for ${currentSymbol}:`, err.message);
+      })
+      .finally(() => {
+        if (!isCancelled) {
+          setIsLiveApiLoading(false);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
   }, [currentSymbol]);
 
   return (
@@ -42,6 +70,11 @@ export default function App() {
         {/* Tab View Contents */}
         <div className="p-4 sm:p-6 space-y-6">
           
+          {/* Live Stock Tracking (TradingView Lightweight Charts) */}
+          {activeTab === 'tracker' && (
+            <TradingViewLiveTracker stock={stock} />
+          )}
+
           {/* 5-Factor Weighted-Sum Model */}
           {activeTab === 'model' && (
             <WeightedRiskModelCard stock={stock} />
@@ -50,22 +83,6 @@ export default function App() {
           {/* From Raw Data to Risk Values */}
           {activeTab === 'dataValues' && (
             <FromRawDataToRiskValues stock={stock} />
-          )}
-
-          {/* Technical Tools */}
-          {activeTab === 'tools' && (
-            <TechnicalToolsCard />
-          )}
-
-          {/* Price & 30-Day SMA Forecast */}
-          {activeTab === 'charts' && (
-            <InteractiveCharts
-              symbol={stock.symbol}
-              history={stock.history}
-              fiveFactorModel={stock.fiveFactorModel}
-              annualizedVol={stock.stats.annualizedVolatility}
-              currency={stock.currency}
-            />
           )}
 
         </div>
@@ -81,8 +98,10 @@ export default function App() {
             <span className="font-bold text-[#042F34]">ANNRIYA RISK FINDER</span>
             <span className="hidden sm:inline text-[#16232B]/60">· Quantitative Risk Assessments of Investment Opportunities</span>
           </div>
-          <div className="text-[11px] text-[#16232B]/60 font-mono">
-            A weighted-sum model that combines five risk factors into one 0–100 score
+          <div className="text-[11px] text-[#16232B]/60 font-mono flex items-center gap-2">
+            <span>TradingView Lightweight Charts™</span>
+            <span>·</span>
+            <span className="text-[#042F34] font-semibold">Indian Stock Market API (NSE/BSE)</span>
           </div>
         </div>
       </footer>

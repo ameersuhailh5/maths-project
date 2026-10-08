@@ -99,6 +99,12 @@ export const TickerHeader: React.FC<TickerHeaderProps> = ({ stock, onSelectSymbo
               <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-[#B5F2DB] text-[#042F34] font-bold border border-[#8ee3c2]">
                 {exch}
               </span>
+              {stock.market === 'IN' && (
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-[#042F34] text-[#B5F2DB] font-semibold flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#B5F2DB] animate-pulse" />
+                  Live Indian API
+                </span>
+              )}
             </div>
 
             <div className="flex items-center gap-2 text-xs text-[#16232B]/70">
@@ -136,7 +142,7 @@ export const TickerHeader: React.FC<TickerHeaderProps> = ({ stock, onSelectSymbo
             <div className="border-l border-[#cddfe2] pl-4">
               <div className="text-[11px] text-[#16232B]/70 font-medium uppercase tracking-wider">Annualized Volatility</div>
               <div className="text-xl font-bold font-mono text-[#042F34]">
-                {stats.annualizedVolatility}%
+                {(stats.annualizedVolatility > 1 ? stats.annualizedVolatility : stats.annualizedVolatility * 100).toFixed(1)}%
               </div>
             </div>
 
